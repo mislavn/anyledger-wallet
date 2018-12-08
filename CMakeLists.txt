@@ -1,3 +1,4 @@
+cmake_minimum_required(VERSION 3.0.0)
 #set(BUILD_INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/install CACHE STRING "install destination for 3rd party libs and plugins")
 set(BUILD_INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/install CACHE STRING "")
 set(WALLET_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR} CACHE STRING "")
@@ -15,8 +16,11 @@ if(BUILD_XCOMPILE)
     add_subdirectory(zephyr-wallet)
 else()
     message(STATUS "x86 build")
+    project(NONE)
+    link_directories(${CMAKE_CURRENT_BINARY_DIR}/install/lib/)
 # enable testing for x86 builds
 endif()
+
 include(cmake/trezor-crypto.cmake)
 include(cmake/nanopb.cmake)
 include(cmake/wallet.cmake)
