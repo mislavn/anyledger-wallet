@@ -105,3 +105,54 @@ TEST(TEST_WEB3, test_decode_txreceipt)
     ASSERT_EQ(receipt.blockNumber, 0x8d1447);
 }
 
+void helper_eth_convert(uint64_t value, const char *compare, enum ETH_UNIT from, enum ETH_UNIT to)
+{
+    int rc;
+    uint256_t amount;
+    const size_t buf_len = 50;
+    char buf[buf_len] = {0};
+    set256_uint64(&amount, value);
+    rc = eth_convert(&amount, from, to, buf, buf_len);
+    ASSERT_EQ(rc, 0);
+    ASSERT_EQ(strcmp(buf, compare), 0);
+    ASSERT_EQ(strlen(buf), strlen(compare));
+}
+
+TEST(TEST_ETH_CONVERT, test_eth_convert)
+{
+    int rc;
+    uint256_t amount;
+    const size_t buf_len = 50;
+    char buf[buf_len] = {0};
+
+    set256_uint64(&amount, 1234567890);
+
+    rc = eth_convert(&amount, ETH_UNIT_ETHER, ETH_UNIT_WEI, buf, 10);
+    ASSERT_EQ(rc, -1);
+
+    rc = eth_convert(&amount, ETH_UNIT_ETHER, ETH_UNIT_KETHER, buf, 10);
+    ASSERT_EQ(rc, -1);
+
+    rc = eth_convert(&amount, ETH_UNIT_ETHER, ETH_UNIT_KETHER, buf, 7);
+    ASSERT_EQ(rc, -1);
+
+    rc = eth_convert(&amount, ETH_UNIT_ETHER, ETH_UNIT_KETHER, buf, 5);
+    ASSERT_EQ(rc, -1);
+
+    helper_eth_convert(1,"1000000000000000000", ETH_UNIT_ETHER, ETH_UNIT_WEI);
+    helper_eth_convert(1,"1000000000000000", ETH_UNIT_ETHER, ETH_UNIT_KWEI);
+    helper_eth_convert(1,"1000000000000", ETH_UNIT_ETHER, ETH_UNIT_MWEI);
+    helper_eth_convert(1,"1000000000", ETH_UNIT_ETHER, ETH_UNIT_GWEI);
+    helper_eth_convert(1,"1000000", ETH_UNIT_ETHER, ETH_UNIT_SZABO);
+    helper_eth_convert(1,"1000", ETH_UNIT_ETHER, ETH_UNIT_FINNEY);
+    helper_eth_convert(1,"1", ETH_UNIT_ETHER, ETH_UNIT_ETHER);
+    helper_eth_convert(1,"0.001", ETH_UNIT_ETHER, ETH_UNIT_KETHER);
+    helper_eth_convert(1,"0.000001", ETH_UNIT_ETHER, ETH_UNIT_METHER);
+    helper_eth_convert(1,"0.000000001", ETH_UNIT_ETHER, ETH_UNIT_GETHER);
+    helper_eth_convert(1,"0.000000000001", ETH_UNIT_ETHER, ETH_UNIT_TETHER);
+
+    set256_uint64(&amount, 0);
+    rc = eth_convert(&amount, ETH_UNIT_ETHER, ETH_UNIT_WEI, buf, buf_len);
+    ASSERT_EQ(rc, 0);
+    ASSERT_EQ(strcmp(buf, "0"), 0);
+}

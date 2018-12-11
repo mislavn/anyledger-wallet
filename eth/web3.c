@@ -10,6 +10,7 @@
 #include <stdio.h> // required for zephyr - includes vsnprintf() declaration
 #include <stdarg.h>
 #include <assert.h>
+#include <math.h>
 
 /* local includes */
 #include "web3.h"
@@ -233,5 +234,65 @@ int eth_getTransactionReceipt(web3_ctx_t *web3, const tx_hash_t *tx_hash)
         return -1;
     }
     WEB3_TERMINATOR();
+    return 0;
+}
+
+int eth_convert(const uint256_t *amount, enum ETH_UNIT from, enum ETH_UNIT to, char *buf, size_t buf_size)
+{
+    assert(amount != NULL);
+    uint256_t conversion = *amount;
+    uint256_t power;
+
+    // add zeros
+    if (from >= to) {
+        set256_uint64(&power, pow(10, (int) from - (int) to));
+        mul256(amount, &power, &conversion);
+        if(tostring256(&conversion, 10, buf, buf_size) == false) {
+            return -1;
+        }
+    // remove zeros and add dot if needed
+    } else {
+        set256_uint64(&power, pow(10, (int) to - (int) from));
+        mul256(amount, &power, &conversion);
+        uint256_t retDiv, retMod;
+        divmod256(amount, &power, &retDiv, &retMod);
+        if(tostring256(&retDiv, 10, buf, buf_size) == false) {
+            return -1;
+        }
+        uint256_t zero;
+        set256_uint64(&zero, 0);
+        // skip if the retMod is 0
+        if (gt256(&retMod, &zero)) {
+            size_t len = strlen(buf);
+            // check buf size and add dot
+            if (len == buf_size) {
+                return -1;
+            }
+            buf[len] = '.';
+            buf[len + 1] = '\0';
+            // get number size
+            if(tostring256(&retMod, 10, buf + len + 1, buf_size - (len + 1)) == false) {
+                return -1;
+            }
+            // check if zeros are needed after dot
+            int shift = (int) to - (int) from - strlen(buf + len + 1);
+            if (shift > 0) {
+                // check buf size
+                if (len + 1 + shift + 1 > buf_size) {
+                    return -1;
+                }
+                // file empty space with zeros
+                int i;
+                for (i = 0; i < shift; ++i) {
+                    buf[len + 1 + i] = '0';
+                }
+                // add retMod shifted
+                if(tostring256(&retMod, 10, buf + len + 1 + shift, buf_size - (len + 1 + shift)) == false) {
+                    return -1;
+                }
+            }
+        }
+    }
+
     return 0;
 }
